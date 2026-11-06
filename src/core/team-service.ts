@@ -87,6 +87,22 @@ export interface StopInput {
 const INSTRUCTION_KEY_CHARTER = "team.charter"
 const INSTRUCTION_KEY_BOARD = "team.board"
 
+function slugifyName(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+}
+
+function teamNameFromGoal(goal: string): string {
+  const slug = slugifyName(goal)
+  if (slug.length >= 3) return slug
+  return `team-${Math.random().toString(36).slice(2, 8)}`
+}
+
 export class TeamService {
   readonly host: Host
   readonly store: TeamStore
@@ -189,7 +205,7 @@ export class TeamService {
 
     const teamID = this.ids.teamId()
     const now = this.clock.now()
-    const name = (input.name?.trim() || `team-${teamID.slice(-6)}`).slice(0, 60)
+    const name = (input.name?.trim() || teamNameFromGoal(goal)).slice(0, 60)
     const topology = input.topology ?? this.config.topology
 
     const team: Team = {

@@ -12,7 +12,7 @@ import {
 } from "./limits.ts"
 import { Mutex } from "./mutex.ts"
 import type { PairState, RateState } from "./limits.ts"
-import { renderDelivery } from "./render.ts"
+import { renderDelivery, truncateChars } from "./render.ts"
 import type { StoreError, TeamStore } from "./store.ts"
 
 export interface MailboxPort {
@@ -167,6 +167,25 @@ export class Mailbox {
     } catch {
       delivered = false
     }
+
+    // Deliver a copy to the sender so both sides of peer conversations are visible.
+    // Without this, only the recipient sees the message and the lead never sees
+    // what teammates say to each other.
+    if (input.from.id !== input.to.id && input.from.sessionID) {
+      try {
+        const toMember = input.to
+        if (toMember.sessionID) {
+          const subject = envelope.subject ? ` · ${envelope.subject}` : ""
+          const bodyPreview = truncateChars(envelope.body, 120)
+          const senderCopy =
+            `[team] you → ${toMember.id}${subject}\n${bodyPreview}`
+          await this.port.synthesize(input.from, senderCopy, "queue", `team ${team.id} sent message ${envelope.id}`)
+        }
+      } catch {
+        // sender copy is best-effort; never block a send because of it
+      }
+    }
+
     return { envelope, delivered, duplicate: false }
   }
 
