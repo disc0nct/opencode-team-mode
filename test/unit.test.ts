@@ -143,7 +143,7 @@ test("render: charter, board, task, and status formatters", () => {
     updatedAt: 1200,
   }
 
-  const charter = renderCharter(team, member, "Implement tasks.", {
+  const charter = renderCharter(team, member, [member], "Implement tasks.", {
     maxMembers: 5,
     maxDepth: 1,
     maxHopsPerThread: 6,

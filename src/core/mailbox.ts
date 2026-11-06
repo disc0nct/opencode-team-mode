@@ -161,32 +161,53 @@ export class Mailbox {
     if (!envelope) {
       return { delivered: false, duplicate: pausedPair === undefined, ...(pausedPair ? { pausedPair } : {}) }
     }
-    let delivered = false
-    try {
-      delivered = await this.deliver(team, input.to, envelope)
-    } catch {
-      delivered = false
-    }
+    // Deliver peer messages to ALL active team members so everyone sees
+    // every conversation, not just sender → recipient.
+    const allMembers = await this.store.members(team.id)
+    const activeMembers = allMembers.filter(
+      (m) => m.sessionID && m.status !== "stopped" && m.status !== "failed"
+    )
 
-    // Deliver a copy to the sender so both sides of peer conversations are visible.
-    // Without this, only the recipient sees the message and the lead never sees
-    // what teammates say to each other.
-    if (input.from.id !== input.to.id && input.from.sessionID) {
+    let anyDelivered = false
+    let recipientDelivered = false
+    for (const member of activeMembers) {
       try {
-        const toMember = input.to
-        if (toMember.sessionID) {
-          const subject = envelope.subject ? ` · ${envelope.subject}` : ""
-          const bodyPreview = truncateChars(envelope.body, 120)
-          const senderCopy =
-            `[team] you → ${toMember.id}${subject}\n${bodyPreview}`
-          await this.port.synthesize(input.from, senderCopy, "queue", `team ${team.id} sent message ${envelope.id}`)
-        }
+        const busy = await this.port.isBusy(member)
+        // Respect busy/urgent delivery rules: busy + normal waits for idle;
+        // busy + urgent interrupts via steer.
+        if (busy && envelope.priority !== "urgent") continue
+        const subject = envelope.subject ? ` · ${envelope.subject}` : ""
+        const bodyPreview = truncateChars(envelope.body, 1000)
+        const text =
+          member.id === input.from.id
+            ? `[team] you → all${subject}\n${bodyPreview}`
+            : `[team] ${input.from.id} → ${member.id}${subject}\n${bodyPreview}`
+        const delivery: Delivery = busy ? "steer" : "queue"
+        await this.port.synthesize(member, text, delivery, `team ${team.id} message ${envelope.id}`)
+        anyDelivered = true
+        if (member.id === input.to.id) recipientDelivered = true
       } catch {
-        // sender copy is best-effort; never block a send because of it
+        // best-effort per member; never block a send because one member fails
       }
     }
 
-    return { envelope, delivered, duplicate: false }
+    // Mark envelope as delivered only when the recipient actually received it.
+    // (Sender copies don't count — they are informational.)
+    if (recipientDelivered) {
+      try {
+        await this.store.transact(team.id, async (tx) => {
+          const stored = tx.envelope(input.to.id, envelope.id)
+          if (stored && !stored.deliveredAt) {
+            stored.deliveredAt = this.clock.now()
+            tx.putEnvelope(input.to.id, stored)
+          }
+        })
+      } catch {
+        // best-effort
+      }
+    }
+
+    return { envelope, delivered: recipientDelivered, duplicate: false }
   }
 
   async system(team: Team, to: Member, subject: string, body: string, priority: Priority = "normal"): Promise<boolean> {

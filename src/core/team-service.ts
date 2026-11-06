@@ -782,7 +782,7 @@ export class TeamService {
     // generated redundant host traffic. It is only (re)written at spawn,
     // team creation and recovery.
     if (includeCharter) {
-      const charterText = renderCharter(team, member, preset.charter, this.config.limits)
+      const charterText = renderCharter(team, member, members, preset.charter, this.config.limits)
       await this.host.sessions.putInstruction(member.sessionID, INSTRUCTION_KEY_CHARTER, charterText)
     }
 

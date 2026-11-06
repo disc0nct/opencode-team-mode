@@ -230,7 +230,7 @@ test("Scenario 7: Startup recovery redelivers undelivered inbox messages", async
   await service.createTeam(leadSession, { goal: "Recovery test" })
   const impl = await service.spawn(leadSession, { role: "implementer" })
 
-  // Set recipient as busy so normal messages remain queued undelivered
+  // Set recipient as busy so normal messages remain queued undelivered for them
   host.setSessionBusy(impl.sessionID, true)
 
   const outcome = await service.send(leadSession, {
@@ -238,6 +238,8 @@ test("Scenario 7: Startup recovery redelivers undelivered inbox messages", async
     body: "Queued before restart",
     priority: "normal",
   })
+  // Recipient is busy, so normal message stays queued undelivered for them.
+  // (Sender gets an informational copy but that doesn't count as delivered.)
   assert.equal(outcome.delivered, false)
 
   // Recipient becomes idle after restart
@@ -246,9 +248,9 @@ test("Scenario 7: Startup recovery redelivers undelivered inbox messages", async
   // Run recovery scan & application
   await service.recover()
 
-  // Verify message has been delivered to the session
+  // Verify message has been delivered to the recipient's session
   const synth = host.syntheticCalls.find((c) => c.sessionID === impl.sessionID)
-  assert.ok(synth, "Pending message should be delivered after recovery")
+  assert.ok(synth, "Pending message should be delivered to recipient after recovery")
   assert.match(synth.input.text, /Queued before restart/)
 })
 

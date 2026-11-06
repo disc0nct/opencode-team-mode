@@ -51,16 +51,23 @@ function taskNumber(task: Task): number {
   return Number(task.id.replace(/^t_/, "")) || 0
 }
 
-export function renderCharter(team: Team, member: Member, charter: string, limits: Limits): string {
+export function renderCharter(team: Team, member: Member, members: Member[], charter: string, limits: Limits): string {
   const goal = truncateChars(team.goal, 320)
   const role = truncateChars(charter, 520)
+  const peers = members
+    .filter((m) => m.id !== member.id && m.status !== "stopped" && m.status !== "failed")
+    .map((m) => `  ${m.id} (${m.role}) · ${m.agent}`)
+    .join("\n")
   const lines = [
     `[team-mode] team=${team.id} member=${member.id} role=${member.role}`,
     `Team goal: ${goal}`,
     `Your role: ${role}`,
     `Identity: you are ${member.id}. Never claim to be another member; tools derive the sender from your session.`,
+    peers.length
+      ? `Your teammates:\n${peers}\nMessage any teammate directly with team_send(to="<their-id>", ...). Everyone on the team sees peer messages.`
+      : "You are the only team member.",
     "Workflow: claim one task with team_task_claim, declare every path you will touch, do the work, then team_task_update status=review or done.",
-    "Use team_send to report progress or ask the lead; use team_inbox to read messages. Do not wait for peers unless you are the lead.",
+    "Use team_send to report progress or ask the lead; use team_inbox to read messages.",
     "If blocked, set the task status=blocked with the reason and message the lead. Keep every report short and factual.",
     `Limits: one active task, ${limits.maxMemberTurns} turns, ${limits.maxMemberMinutes} minutes, ${limits.maxMessagesPerMemberPerMinute} messages/minute.`,
   ]
