@@ -32,7 +32,7 @@ export function createCommand(service: TeamService, host: Host): CommandDefiniti
       const reply = async (message: string) => {
         await host.sessions.synthesize(invocation.sessionID, {
           text: message,
-          delivery: "queue",
+          delivery: "steer",
           description: "team command reply",
         })
       }
