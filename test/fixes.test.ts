@@ -47,6 +47,7 @@ test("Fix SEC-01: path traversal escapes are rejected by the lease hook", async 
   // A parent-directory escape no longer rides the leased prefix: the path is
   // canonically resolved first, so `test/../src/host.ts` becomes
   // `src/host.ts` and fails the lease as an undeclared path.
+  const pathRegex = process.platform === "win32" ? /path src\\host\.ts is not declared/ : /path src\/host\.ts is not declared/
   await assert.rejects(
     async () => {
       await host.emitToolBefore({
@@ -58,7 +59,7 @@ test("Fix SEC-01: path traversal escapes are rejected by the lease hook", async 
         input: { path: "test/../src/host.ts", content: "evil" },
       })
     },
-    /path src\/host\.ts is not declared on your active task/,
+    pathRegex,
   )
 
   // A path that escapes the workspace root entirely is rejected outright.
@@ -112,7 +113,8 @@ test("Fix SEC-02: task path additions respect other members' active leases", asy
 
   // Non-conflicting additions still work.
   const updated = await service.updateTask(impl2.sessionID, t2.id, { paths: ["src/other.ts"] })
-  assert.ok(updated.paths.includes("src/other.ts"))
+  const expectedPath = process.platform === "win32" ? "src\\other.ts" : "src/other.ts"
+  assert.ok(updated.paths.includes(expectedPath))
 })
 
 test("Fix SEC-03: mesh spawn privilege escalation and depth limit enforced", async () => {

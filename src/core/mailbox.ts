@@ -161,16 +161,26 @@ export class Mailbox {
     if (!envelope) {
       return { delivered: false, duplicate: pausedPair === undefined, ...(pausedPair ? { pausedPair } : {}) }
     }
-    // Deliver peer messages to ALL active team members so everyone sees
-    // every conversation, not just sender → recipient.
+    // Deliver to the intended recipient (point-to-point).
+    // If envelope.type === "broadcast" or team config has peerMessagesVisible,
+    // also deliver to all other active members.
+    const shouldBroadcast =
+      envelope.type === "broadcast" || this.config.limits.peerMessagesVisible === true
     const allMembers = await this.store.members(team.id)
     const activeMembers = allMembers.filter(
       (m) => m.sessionID && m.status !== "stopped" && m.status !== "failed"
     )
+    let recipients = shouldBroadcast
+      ? activeMembers
+      : activeMembers.filter((m) => m.id === input.to.id)
 
-    let anyDelivered = false
-    let recipientDelivered = false
-    for (const member of activeMembers) {
+    // Limit broadcast recipients to prevent O(n) performance degradation
+    if (shouldBroadcast && recipients.length > this.config.limits.maxBroadcastMembers) {
+      recipients = recipients.slice(0, this.config.limits.maxBroadcastMembers)
+    }
+
+    const deliveredRecipients = new Set<string>()
+    for (const member of recipients) {
       try {
         const busy = await this.port.isBusy(member)
         // Respect busy/urgent delivery rules: busy + normal waits for idle;
@@ -184,8 +194,7 @@ export class Mailbox {
             : `[team] ${input.from.id} → ${member.id}${subject}\n${bodyPreview}`
         const delivery: Delivery = busy ? "steer" : "queue"
         await this.port.synthesize(member, text, delivery, `team ${team.id} message ${envelope.id}`)
-        anyDelivered = true
-        if (member.id === input.to.id) recipientDelivered = true
+        if (member.id === input.to.id) deliveredRecipients.add(member.id)
       } catch {
         // best-effort per member; never block a send because one member fails
       }
@@ -193,7 +202,7 @@ export class Mailbox {
 
     // Mark envelope as delivered only when the recipient actually received it.
     // (Sender copies don't count — they are informational.)
-    if (recipientDelivered) {
+    if (deliveredRecipients.has(input.to.id)) {
       try {
         await this.store.transact(team.id, async (tx) => {
           const stored = tx.envelope(input.to.id, envelope.id)
@@ -207,7 +216,7 @@ export class Mailbox {
       }
     }
 
-    return { envelope, delivered: recipientDelivered, duplicate: false }
+    return { envelope, delivered: deliveredRecipients.has(input.to.id), duplicate: false }
   }
 
   async system(team: Team, to: Member, subject: string, body: string, priority: Priority = "normal"): Promise<boolean> {

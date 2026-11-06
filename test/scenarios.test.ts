@@ -207,7 +207,7 @@ test("Scenario 6: File lease enforcement via execute.before hook", async () => {
         input: { path: "src/bar.ts", content: "data" },
       })
     },
-    /File lease violation: path src\/bar.ts is not declared on your active task/,
+    process.platform === "win32" ? /path src\\bar.ts is not declared/ : /path src\/bar.ts is not declared/,
   )
 
   // Modifying declared file succeeds without throwing

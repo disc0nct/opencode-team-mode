@@ -57,11 +57,17 @@ test("config validation: valid and invalid inputs", () => {
 })
 
 test("limits: path normalization and overlap detection", () => {
-  assert.equal(normalizePath("./src\\foo\\bar/"), "src/foo/bar")
-  assert.equal(normalizePath("src/lib/**"), "src/lib")
+  const isWindows = process.platform === "win32"
+  const expectedPath = isWindows ? "src\\foo\\bar" : "src/foo/bar"
+  const expectedPaths = isWindows ? ["src\\a", "src\\b"] : ["src/a", "src/b"]
+  const expectedLib = isWindows ? "src\\lib" : "src/lib"
+  const expectedConflict = "src/bar"
+
+  assert.equal(normalizePath("./src\\foo\\bar/"), expectedPath)
+  assert.equal(normalizePath("src/lib/**"), expectedLib)
 
   const normalized = normalizePaths(["./src/a", "src/b/", "src/a"])
-  assert.deepEqual(normalized, ["src/a", "src/b"])
+  assert.deepEqual(normalized, expectedPaths)
 
   assert.equal(pathsOverlap("src/auth.ts", "src/auth.ts"), true)
   assert.equal(pathsOverlap("src/components", "src/components/Button.tsx"), true)
@@ -69,7 +75,7 @@ test("limits: path normalization and overlap detection", () => {
   assert.equal(pathsOverlap("src/components", "src/utils"), false)
 
   const conflict = pathConflict(["src/foo.ts", "src/bar"], ["src/bar/sub.ts"])
-  assert.equal(conflict, "src/bar")
+  assert.equal(conflict, expectedConflict)
 })
 
 test("limits: wait-for cycle path calculation", () => {
@@ -157,9 +163,11 @@ test("render: charter, board, task, and status formatters", () => {
     sweepMs: 30000,
     peerWait: false,
     waitTimeoutMs: 30000,
+    peerMessagesVisible: false,
+    maxBroadcastMembers: 50,
   })
   assert.match(charter, /\[team-mode\] team=tm_123 member=implementer-1/)
-  assert.match(charter, /Your role: Implement tasks/)
+  assert.match(charter, /\*\*Your role:\*\* Implement tasks/)
 
   const board = renderBoard(team, [member], [task], member, 0)
   assert.match(board, /t_1 \[in_progress\] Implement core · implementer-1/)

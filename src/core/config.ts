@@ -14,6 +14,8 @@ export const DEFAULT_LIMITS: Limits = {
   sweepMs: 30_000,
   peerWait: false,
   waitTimeoutMs: 30_000,
+  peerMessagesVisible: false,
+  maxBroadcastMembers: 50,
 }
 
 export const DEFAULT_ROLES: Record<string, RolePreset> = {
@@ -127,6 +129,8 @@ export function validateConfig(raw: unknown): TeamConfig {
     sweepMs: integer(limitsRaw.sweepMs, DEFAULT_LIMITS.sweepMs, "limits.sweepMs", 1000, 600_000),
     peerWait: boolean(limitsRaw.peerWait, DEFAULT_LIMITS.peerWait, "limits.peerWait"),
     waitTimeoutMs: integer(limitsRaw.waitTimeoutMs, DEFAULT_LIMITS.waitTimeoutMs, "limits.waitTimeoutMs", 1000, 600_000),
+    peerMessagesVisible: boolean(limitsRaw.peerMessagesVisible, DEFAULT_LIMITS.peerMessagesVisible, "limits.peerMessagesVisible"),
+    maxBroadcastMembers: integer(limitsRaw.maxBroadcastMembers, DEFAULT_LIMITS.maxBroadcastMembers, "limits.maxBroadcastMembers", 2, 200),
   }
   if (!Number.isFinite(limits.maxTeamCostUSD) || limits.maxTeamCostUSD < 0) {
     throw new Error("team-mode options: limits.maxTeamCostUSD must be a non-negative number")

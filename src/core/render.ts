@@ -56,20 +56,20 @@ export function renderCharter(team: Team, member: Member, members: Member[], cha
   const role = truncateChars(charter, 520)
   const peers = members
     .filter((m) => m.id !== member.id && m.status !== "stopped" && m.status !== "failed")
-    .map((m) => `  ${m.id} (${m.role}) · ${m.agent}`)
+    .map((m) => `- \`${m.id}\` (${m.role}) · \`${m.agent}\``)
     .join("\n")
   const lines = [
     `[team-mode] team=${team.id} member=${member.id} role=${member.role}`,
-    `Team goal: ${goal}`,
-    `Your role: ${role}`,
-    `Identity: you are ${member.id}. Never claim to be another member; tools derive the sender from your session.`,
+    `**Team goal:** ${goal}`,
+    `**Your role:** ${role}`,
+    `**Identity:** you are \`${member.id}\`. Never claim to be another member; tools derive the sender from your session.`,
     peers.length
-      ? `Your teammates:\n${peers}\nMessage any teammate directly with team_send(to="<their-id>", ...). Everyone on the team sees peer messages.`
+      ? `**Your teammates:**\n${peers}\nMessage any teammate directly with \`team_send(to="<their-id>", ...)\`. Everyone on the team sees peer messages.`
       : "You are the only team member.",
-    "Workflow: claim one task with team_task_claim, declare every path you will touch, do the work, then team_task_update status=review or done.",
-    "Use team_send to report progress or ask the lead; use team_inbox to read messages.",
+    "**Workflow:** claim one task with `team_task_claim`, declare every path you will touch, do the work, then `team_task_update` status=review or done.",
+    "Use `team_send` to report progress or ask the lead; use `team_inbox` to read messages.",
     "If blocked, set the task status=blocked with the reason and message the lead. Keep every report short and factual.",
-    `Limits: one active task, ${limits.maxMemberTurns} turns, ${limits.maxMemberMinutes} minutes, ${limits.maxMessagesPerMemberPerMinute} messages/minute.`,
+    `**Limits:** one active task, ${limits.maxMemberTurns} turns, ${limits.maxMemberMinutes} minutes, ${limits.maxMessagesPerMemberPerMinute} messages/minute.`,
   ]
   return truncateTokens(lines.join("\n"), 400)
 }
@@ -131,7 +131,7 @@ export function renderStatus(team: Team, members: Member[], tasks: Task[], now: 
       lines.push(`- ${task.id} [${task.status}] ${oneLine(task.title, 100)}${owner}`)
     }
   }
-  return truncateTokens(lines.join("\n"), 900)
+  return truncateTokens(lines.join("\n"), 300)
 }
 
 export function renderTask(task: Task): string {

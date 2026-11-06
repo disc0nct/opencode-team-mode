@@ -2,7 +2,7 @@ export type Topology = "hub" | "mesh"
 export type TeamStatus = "active" | "paused" | "stopping" | "stopped"
 export type MemberStatus = "spawning" | "idle" | "working" | "blocked" | "done" | "failed" | "stopped"
 export type TaskStatus = "pending" | "claimed" | "in_progress" | "blocked" | "review" | "done" | "cancelled"
-export type EnvelopeType = "message" | "request" | "response" | "handoff" | "status" | "system"
+export type EnvelopeType = "message" | "request" | "response" | "handoff" | "status" | "system" | "broadcast"
 export type Priority = "normal" | "urgent"
 export type Delivery = "steer" | "queue"
 
@@ -26,6 +26,8 @@ export interface Limits {
   sweepMs: number
   peerWait: boolean
   waitTimeoutMs: number
+  peerMessagesVisible: boolean
+  maxBroadcastMembers: number
 }
 
 export interface RolePreset {

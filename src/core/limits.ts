@@ -1,4 +1,4 @@
-import { posix } from "node:path"
+import { posix, win32 } from "node:path"
 import type { Envelope, Limits, Member, Task, TeamConfig } from "../types.ts"
 
 export interface RateState {
@@ -36,8 +36,10 @@ export function normalizePath(raw: string): string {
   path = path.replace(/\/\*\*?$/, "")
   // Resolve parent segments canonically; a path that escapes the workspace
   // root (`..`) must never be leased or matched against a lease.
-  const resolved = posix.normalize(path)
-  if (resolved === ".." || resolved.startsWith("../")) return ""
+  const pathModule = process.platform === "win32" ? win32 : posix
+  const resolved = pathModule.normalize(path)
+  // Check for path escape on both Windows (..\) and POSIX (../)
+  if (resolved === ".." || resolved.startsWith("../") || resolved.startsWith("..\\")) return ""
   return resolved
 }
 
@@ -51,13 +53,16 @@ export function normalizePaths(raw: readonly string[]): string[] {
 }
 
 const CASE_INSENSITIVE_PATHS = process.platform === "win32"
+const SEPARATOR = process.platform === "win32" ? "\\" : "/"
 
 export function pathsOverlap(a: string, b: string): boolean {
   if (!a || !b) return false
-  const x = CASE_INSENSITIVE_PATHS ? a.toLowerCase() : a
-  const y = CASE_INSENSITIVE_PATHS ? b.toLowerCase() : b
+  // Normalize separators to platform separator before comparing
+  const normalizeSep = (p: string) => p.replace(/[\\/]/g, SEPARATOR)
+  const x = CASE_INSENSITIVE_PATHS ? normalizeSep(a).toLowerCase() : normalizeSep(a)
+  const y = CASE_INSENSITIVE_PATHS ? normalizeSep(b).toLowerCase() : normalizeSep(b)
   if (x === y) return true
-  return x.startsWith(`${y}/`) || y.startsWith(`${x}/`)
+  return x.startsWith(`${y}${SEPARATOR}`) || y.startsWith(`${x}${SEPARATOR}`)
 }
 
 export function pathConflict(paths: string[], other: string[]): string | undefined {
