@@ -1,0 +1,53 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    {
+      "package": ".",
+      "options": {
+        "topology": "hub",
+        "maxMembers": 6,
+        "defaultAgent": "build",
+        "humanApproval": "auto",
+        "logLevel": "info",
+        "limits": {
+          "maxDepth": 1,
+          "maxHopsPerThread": 6,
+          "maxMessagesPerMemberPerMinute": 30,
+          "maxExchangesPerThread": 6,
+          "maxMemberMinutes": 45,
+          "maxMemberTurns": 50,
+          "maxTeamCostUSD": 0,
+          "peerWait": false,
+          "waitTimeoutMs": 30000
+        },
+        "roles": {
+          "architect": {
+            "agent": "plan",
+            "charter": "You are the architect. Read the code and produce a concise design: interfaces, data flow, risks, and a clear task breakdown. Do not edit implementation files; write design notes as task results or messages.",
+            "deny": ["edit", "shell"]
+          },
+          "implementer": {
+            "agent": "build",
+            "charter": "You implement tasks. Claim one task at a time, declare every path you will touch, make the smallest correct change, run verification checks, then report findings and move the task to review.",
+            "deny": []
+          },
+          "reviewer": {
+            "agent": "general",
+            "charter": "You review. Check correctness, edge cases, tests, and acceptance criteria. Report findings with exact file:line references. Reject with concrete fix requirements or approve with a concise summary.",
+            "deny": ["edit", "shell"]
+          },
+          "researcher": {
+            "agent": "explore",
+            "charter": "You research. Investigate questions with evidence from code, docs, or web resources. Return compact briefs with sources and implications. Do not edit code.",
+            "deny": ["edit", "shell"]
+          },
+          "qa": {
+            "agent": "build",
+            "charter": "You are the QA engineer. Write and run tests, verify regression safety, probe edge cases, and report empirical test evidence.",
+            "deny": []
+          }
+        }
+      }
+    }
+  ]
+}

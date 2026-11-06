@@ -1,0 +1,41 @@
+{
+  "name": "opencode-team-mode",
+  "version": "0.1.0",
+  "description": "Multi-agent team coordination for OpenCode V2: shared tasks, mailboxes, handoffs and limits.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "multi-agent",
+    "agents",
+    "team"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./rpc": "./src/rpc.ts"
+  },
+  "files": [
+    "src",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "pack:check": "npm pack --dry-run"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.2.5",
+    "@opencode/schema": "^2.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
